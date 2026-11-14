@@ -79,7 +79,7 @@ jobs:
       - name: Konfiguracja Pages
         id: pages
         if: steps.plan.outputs.deploy == 'true'
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       # Tryb redeploy_only: db.js nie leży w repozytorium, więc bierzemy ten, który jest teraz na stronie.
       - name: Bieżący db.js z działającej strony
