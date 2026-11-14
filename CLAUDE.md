@@ -38,10 +38,6 @@ Słownik `LANG_COLORS` (nazwa języka => kolor) pochodzi z listy Linguist; `Lang
 
 **Wydajność:** tabele filtrów (Users/Topics/Languages, razem ok. 27 tys. wierszy) w `createFilterGrid` używają `plugins: 'bufferedrenderer'` (ExtJS 4.2) i renderują tylko widoczne wiersze. Bez tego start strony trwa kilkanaście sekund zamiast ok. 2,5 s – nie usuwaj tej wtyczki.
 
-## GitHub Pages: ograniczenia
-
-Strona do 1 GB, transfer 100 GB/miesiąc (limit miękki), brak własnych nagłówków cache (stąd nie ma tu odpowiednika `static_files.rb` ze starego serwera). `db.js` waży ok. 5,7 MB (ok. 1,8 MB po gzipie), z czego ok. 89% to `REPOS`; gdyby transfer stał się problemem, pierwszą rzeczą jest odchudzenie pól w `REPOS` (opis, adres awatara) albo przeniesienie na Cloudflare Static Assets (workflow wdrażałby wtedy przez `wrangler deploy`). Harmonogram Actions w publicznym repozytorium wyłącza się po 60 dniach bez aktywności w repozytorium.
-
 ## Git
 
-Commity tylko na wyraźne polecenie użytkownika (automatyczne commity są dozwolone wyłącznie w `~/chrome-ext-ranking`). `git push`, zakładanie repozytorium na GitHubie i tworzenie gałęzi `data` robi użytkownik (instrukcja w `README.md`). Nie commituj tokenów ani `data/`.
+W tym repozytorium commity robi się automatycznie po każdej skończonej, sprawdzonej zmianie (zgoda użytkownika z 2026-11-14): komunikat po polsku, zwięzły, z trailerem `Co-Authored-By`. `git push`, zakładanie repozytorium na GitHubie i tworzenie gałęzi `data` robi użytkownik (instrukcja w `README.md`). Nie commituj tokenów, `data/` ani `_site/` (są w `.gitignore`). W `~/rankings` commity nadal tylko na wyraźne polecenie.
