@@ -36,7 +36,13 @@ poniedziałek 04:17 UTC (Actions)
 5. **Pierwszy przebieg:** Actions → *Aktualizacja rankingu i wdrożenie na GitHub Pages* → Run workflow (zaznacz `force`, bo ostatni snapshot z ziarna
    może być świeży). Adres strony: `https://<użytkownik>.github.io/github-stars-ranking/`.
 
-Potem workflow działa sam co poniedziałek. Zmiany w `site/` trafiają na Pages przy następnym przebiegu (ręczny *Run workflow* wystarczy).
+Potem workflow działa sam co poniedziałek. Opcje ręcznego *Run workflow*:
+
+| Opcja | Efekt |
+|---|---|
+| (żadna) | pobiera ranking tylko jeśli ostatni snapshot ma 6 dni lub więcej, w przeciwnym razie nic nie robi |
+| `force` | pobiera ranking mimo świeżego snapshotu (dopisuje kolejny snapshot do historii) |
+| `redeploy_only` | **po zmianie samej strony** (`site/`: `main.js`, `index.html` itd.): bierze `db.js` z działającej strony, składa go z aktualnym `site/` i wdraża; nie pobiera nic z GitHub API i nie rusza historii (ma pierwszeństwo przed `force`) |
 
 ## Uruchamianie lokalne
 

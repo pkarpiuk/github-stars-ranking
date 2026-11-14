@@ -1,8 +1,10 @@
 name: Aktualizacja rankingu i wdrożenie na GitHub Pages
 
 # Raz w tygodniu pobiera ranking z GitHuba (update.rb), publikuje stronę na GitHub Pages, a potem dopisuje snapshot do historii
-# w gałęzi `data` (ranking-db.json, language_colors.json). Ręcznie: Actions -> ten workflow -> Run workflow (opcja force).
-# Zmiany w kodzie strony (site/) trafiają na Pages dopiero przy następnym przebiegu (ręczny Run workflow wystarczy).
+# w gałęzi `data` (ranking-db.json, language_colors.json). Ręcznie: Actions -> ten workflow -> Run workflow, z opcjami:
+#   force          - pobierz ranking, nawet jeśli ostatni snapshot ma mniej niż 6 dni (dopisuje kolejny snapshot do historii)
+#   redeploy_only  - tylko wdróż ponownie: bieżący db.js jest pobierany z działającej strony i składany z aktualnym site/;
+#                    niczego nie pobiera z GitHub API i nie rusza historii (po zmianie samej strony: main.js, index.html itd.)
 
 on:
   schedule:
@@ -11,6 +13,10 @@ on:
     inputs:
       force:
         description: 'Pobierz ranking, nawet jeśli ostatni snapshot ma mniej niż 6 dni'
+        type: boolean
+        default: false
+      redeploy_only:
+        description: 'Tylko wdróż ponownie stronę z bieżącym db.js (bez pobierania rankingu i bez zapisu historii)'
         type: boolean
         default: false
 
@@ -36,43 +42,77 @@ jobs:
 
       # Gałąź data musi istnieć przed pierwszym przebiegiem (patrz README.md, "Pierwsze uruchomienie")
       - name: Historia (gałąź data)
+        if: ${{ !inputs.redeploy_only }}
         uses: actions/checkout@v4
         with:
           ref: data
           path: data
 
       - name: Ruby
+        if: ${{ !inputs.redeploy_only }}
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
 
       - name: Pobranie rankingu z GitHuba
         id: update
+        if: ${{ !inputs.redeploy_only }}
         env:
           # Sekret STARS_TOKEN: fine-grained token, publiczne repozytoria, tylko odczyt (README.md). Bez niego: token wbudowany.
           GITHUB_TOKEN: ${{ secrets.STARS_TOKEN || github.token }}
         run: ruby update.rb ${{ inputs.force && '--force' || '' }}
 
-      - name: Złożenie strony
-        if: steps.update.outputs.updated == 'true'
-        run: cp -r site/. _site/
+      # Wdrażamy, gdy pobrano nowy ranking (updated=true) albo gdy poproszono o samo ponowne wdrożenie.
+      - name: Decyzja o wdrożeniu
+        id: plan
+        env:
+          UPDATED: ${{ steps.update.outputs.updated }}
+          REDEPLOY_ONLY: ${{ inputs.redeploy_only }}
+        run: |
+          if [ "$UPDATED" = "true" ] || [ "$REDEPLOY_ONLY" = "true" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Brak nowego rankingu (ostatni snapshot jest świeży) – nic do wdrożenia."
+          fi
 
       - name: Konfiguracja Pages
-        if: steps.update.outputs.updated == 'true'
+        id: pages
+        if: steps.plan.outputs.deploy == 'true'
         uses: actions/configure-pages@v5
 
+      # Tryb redeploy_only: db.js nie leży w repozytorium, więc bierzemy ten, który jest teraz na stronie.
+      - name: Bieżący db.js z działającej strony
+        if: ${{ inputs.redeploy_only }}
+        env:
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          mkdir -p _site
+          curl -fsSL --retry 3 --retry-delay 5 "${BASE_URL%/}/db.js" -o _site/db.js
+          size=$(stat -c %s _site/db.js)
+          echo "Pobrano db.js: ${size} B"
+          if [ "$size" -lt 100000 ] || ! head -c 12 _site/db.js | grep -q '^var RANKING'; then
+            echo "::error::Pobrany db.js wygląda na uszkodzony albo pusty – przerywam, żeby nie nadpisać strony"
+            exit 1
+          fi
+
+      - name: Złożenie strony
+        if: steps.plan.outputs.deploy == 'true'
+        run: cp -r site/. _site/
+
       - name: Pakowanie strony
-        if: steps.update.outputs.updated == 'true'
+        if: steps.plan.outputs.deploy == 'true'
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
 
       - name: Wdrożenie na Pages
         id: deployment
-        if: steps.update.outputs.updated == 'true'
+        if: steps.plan.outputs.deploy == 'true'
         uses: actions/deploy-pages@v4
 
       # Historię zapisujemy PO udanym wdrożeniu: jeśli wdrożenie się nie uda, następny przebieg nie pominie pobrania (bramka świeżości).
+      # Tryb redeploy_only nie dotyka historii (steps.update.outputs.updated jest wtedy puste).
       - name: Zapis historii (gałąź data)
         if: steps.update.outputs.updated == 'true'
         run: |
