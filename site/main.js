@@ -50,6 +50,7 @@ Ext.onReady(function () {
 
 	grid = Ext.create('Ext.grid.Panel', {
 		border: false,
+		cls: 'ranking-grid',   // stała wysokość wiersza (index.html), żeby ikony i kropki języków nie rozpychały wierszy w miarę ładowania
 		store: Ext.create('Ext.data.ArrayStore', {
 			fields: ['rank', 'name', 'prev', 'created_at', 'stars', 'gain', 'gainPct', 'desc', 'language', 'created', 'forks', 'subscribers', 'topics', 'avatar_url', 'html_url', 'ri']
 		}),
@@ -57,7 +58,7 @@ Ext.onReady(function () {
 			{ header: 'Rank', width: 40, dataIndex: 'rank', align: 'right' },
 			{
 				header: 'Name', width: 250, dataIndex: 'name', renderer: function (value, metaData, record) {
-					return `<img src="${record.get('avatar_url')}" style="width: 14px;"> ${value}`;
+					return `<img src="${record.get('avatar_url')}" width="14" height="14" style="width: 14px; height: 14px;"> ${value}`;
 				}
 			},
 			{ header: 'Change', width: 70, align: 'center', dataIndex: 'prev', hidden: !hasCompare, sortable: false, renderer: changeRenderer },
