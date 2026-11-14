@@ -1,0 +1,5 @@
+# wygenerowana strona (workflow składa ją w _site/ i publikuje na Pages)
+_site/
+# dane lokalne: w repozytorium (main) ich nie ma, żyją w gałęzi data; lokalnie to kopia robocza / ziarno do utworzenia gałęzi
+data/
+*.tmp

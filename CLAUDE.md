@@ -1,0 +1,47 @@
+# CLAUDE.md
+
+Guidance for Claude Code (claude.ai/code) working in this repository. Dokumentacja jest po polsku; odpowiadaj użytkownikowi po polsku.
+
+## Przegląd
+
+Ranking repozytoriów GitHuba wg gwiazdek: statyczna strona (ExtJS 4) na GitHub Pages, dane odświeża raz w tygodniu GitHub Actions
+(`.github/workflows/update.yml` uruchamia `update.rb`). Brak serwera, brak Dockera, brak testów i lintera. Wyodrębnione z `~/rankings`
+(tam został stary wariant z workerem `worker.rb`, WEBrickiem i Dockerem oraz drugi, niezwiązany projekt: ranking rozszerzeń Chrome, który jest teraz w `~/chrome-ext-ranking`).
+
+- `update.rb` – cały proces odświeżenia (pobranie GraphQL, historia, `db.js`); `compare_snapshots.rb`, `language_colors.rb` – biblioteki; `language_colors.json` – kopia startowa słownika; `update_language_colors.rb` – ręczne odświeżenie tej kopii.
+- `site/` – strona: `index.html`, `main.js` (cała logika UI), `help.*`, `favicon.ico`, `ext-all.js` i `resources/` (dołączony ExtJS – nie edytować). `db.js` NIE leży w repozytorium: powstaje w `_site/` przy każdym przebiegu.
+- gałąź `data` – historia `ranking-db.json` i odświeżany `language_colors.json` (commitowane przez workflow po wdrożeniu); lokalnie `data/` jest w `.gitignore` głównej gałęzi.
+
+## Polecenia
+
+```
+GITHUB_TOKEN=... ruby update.rb [--force]     # lokalnie: data/ranking-db.json + _site/db.js (ruby 3, bez gemów)
+cp -r site/. _site/ && (cd _site && python3 -m http.server 8000)     # podgląd strony
+```
+Opcjonalnie: `RANKING_SIZE` (10000), `MIN_STARS` (1000), `PAGE_SIZE` (50), `MIN_INTERVAL` (518400 s = 6 dni), `RANKING_DB`, `OUTPUT_DB_JS`, `RANKING_LANG_COLORS`; do testów `GITHUB_GRAPHQL_URL` i `LINGUIST_URL` (atrapy API; testowane na lokalnej atrapie GitHuba w listopadzie 2026: 2500 repozytoriów, 102 zapytania, ok. 7 s). Nie ma testów automatycznych; workflow nie był jeszcze uruchomiony na GitHubie (sprawdzona składnia YAML, `update.rb` i strona na atrapie).
+
+## Architektura (`update.rb`)
+
+1. **Bramka świeżości:** jeśli ostatni snapshot w historii ma mniej niż `MIN_INTERVAL` (6 dni, zapas na opóźnienia harmonogramu), nic nie robi i zapisuje `updated=false` w `$GITHUB_OUTPUT`; `--force` (w workflow: opcja `force` przy ręcznym uruchomieniu) pomija bramkę. Kody wyjścia: 0 sukces/pominięcie, 1 błąd (nic nie zapisano), 2 zły parametr.
+2. **Pobranie:** GitHub GraphQL `search(type: REPOSITORY)`, 100 repo na zapytanie (strona 50, zmniejszana przy 502), `sort:stars-desc`. Wyszukiwarka zwraca maks. 1000 wyników, więc po wyczerpaniu strony zakres zawęża się do `stars:<=<najmniejsza liczba gwiazdek>` (duplikaty na granicy są odrzucane). Błędy przejściowe i limity są ponawiane z backoffem (do 8 prób). Jedno zapytanie zwraca wszystkie pola używane w UI, więc metadane odświeżają się przy każdym przebiegu.
+3. **`_site/db.js`** (atomowo): `var RANKING = [['/owner/name', stars], ...]; var RANKING_TS; var COMPARE; var LANG_COLORS; var REPOS = {'/owner/name': {...}};` (pola jak w REST API: `forks_count`, `subscribers_count`, `created_at`, …; bez `watchers`). `main.js` ładuje to jako zmienne globalne.
+4. **Historia:** po zbudowaniu `db.js` dopisuje snapshot `{ts, data}` do `data/ranking-db.json` (JSON-lines; wpisy `[nazwa, gwiazdki, databaseId]`).
+5. **Workflow:** po `updated=true` składa `site/` + `_site/db.js`, wdraża na Pages (`configure-pages`, `upload-pages-artifact`, `deploy-pages`) i DOPIERO POTEM commituje historię do `data` (jeśli wdrożenie się nie uda, następny przebieg nie jest pomijany przez bramkę). Harmonogram: poniedziałek 04:17 UTC. Sekret `STARS_TOKEN` (fine-grained, publiczne repozytoria, odczyt), a bez niego wbudowany `GITHUB_TOKEN` (limit GraphQL nieznany).
+
+## Porównania (COMPARE), identyfikatory, UI
+
+`COMPARE` to snapshoty do porównania z historii, wybrane przez `compare_snapshots.rb` (zawsze względem najnowszego; cele wstecz: 1 tydzień, 1/3/6 miesięcy, 1 rok i kolejne lata; dla każdego celu bierze się najbliższy czasowo snapshot, nawet niedokładny, bez duplikatów; etykieta pokazuje prawdziwy wiek). Każdy wpis ma `ranks` i `stars` wyrównane z `RANKING` (pozycja/gwiazdki w tamtym snapshocie albo 0). Dopasowanie po id (`databaseId`, stałe mimo zmiany nazwy repozytorium); gdy id brakuje po jednej ze stron, po nazwie bez rozróżniania wielkości liter, ale dopasowanie po nazwie jest odrzucane, gdy oba id są znane i różne (ponowne użycie nazwy). Stara historia została jednorazowo zmigrowana (id=null dla usuniętych/użytych ponownie nazw; migracja jest w `~/rankings`, tu niepotrzebna). Brak `COMPARE` w `db.js` ukrywa kolumnę Change i combobox „Compare to”.
+
+`main.js`: kolumna Change (różnica pozycji w pełnym rankingu, niezależna od filtrów; „NEW” tylko gdy repozytorium powstało po dacie snapshotu, inaczej „n/a” z wyjaśnieniem w dymku), kolumna Gain (przyrost gwiazdek i procent), „Sort by” (Stars / Stars gained / Stars gained % / Positions gained) i „Show” (All / New / Climbers / Fallers) na całym rankingu przed obcięciem do 300 wierszy; od szerokości okna 1920 px stoją w pierwszym rzędzie paska po „Compare to”, poniżej w drugim (`placeSortShow`); wykresy SVG pozycji i gwiazdek w panelu Repo Info; kolorowa kropka przy języku z `LANG_COLORS`. Dolny panel pobiera szczegóły repozytorium (licencja, ostatni push, issues+PR, rozmiar, strona, pasek języków) **w przeglądarce** z anonimowego GitHub REST API (limit 60 zapytań/godz. na IP; opóźnienie 350 ms, pamięć podręczna sesji, komunikaty dla 403/404). Opisy i tematy są kodowane (`Ext.String.htmlEncode`) przed wstawieniem do HTML. Adresy w `index.html` są względne, więc strona działa pod `https://<użytkownik>.github.io/github-stars-ranking/`.
+
+Słownik `LANG_COLORS` (nazwa języka => kolor) pochodzi z listy Linguist; `LanguageColors.update` odświeża go przy każdym przebiegu do `data/language_colors.json` (zapas: `language_colors.json` z repozytorium) i **nigdy nie przerywa pobierania** (przy błędzie loguje ostrzeżenie i zostaje poprzedni; zapis atomowy).
+
+**Wydajność:** tabele filtrów (Users/Topics/Languages, razem ok. 27 tys. wierszy) w `createFilterGrid` używają `plugins: 'bufferedrenderer'` (ExtJS 4.2) i renderują tylko widoczne wiersze. Bez tego start strony trwa kilkanaście sekund zamiast ok. 2,5 s – nie usuwaj tej wtyczki.
+
+## GitHub Pages: ograniczenia
+
+Strona do 1 GB, transfer 100 GB/miesiąc (limit miękki), brak własnych nagłówków cache (stąd nie ma tu odpowiednika `static_files.rb` ze starego serwera). `db.js` waży ok. 5,7 MB (ok. 1,8 MB po gzipie), z czego ok. 89% to `REPOS`; gdyby transfer stał się problemem, pierwszą rzeczą jest odchudzenie pól w `REPOS` (opis, adres awatara) albo przeniesienie na Cloudflare Static Assets (workflow wdrażałby wtedy przez `wrangler deploy`). Harmonogram Actions w publicznym repozytorium wyłącza się po 60 dniach bez aktywności w repozytorium.
+
+## Git
+
+Commity tylko na wyraźne polecenie użytkownika (automatyczne commity są dozwolone wyłącznie w `~/chrome-ext-ranking`). `git push`, zakładanie repozytorium na GitHubie i tworzenie gałęzi `data` robi użytkownik (instrukcja w `README.md`). Nie commituj tokenów ani `data/`.

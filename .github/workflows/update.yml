@@ -1,0 +1,84 @@
+name: Aktualizacja rankingu i wdrożenie na GitHub Pages
+
+# Raz w tygodniu pobiera ranking z GitHuba (update.rb), publikuje stronę na GitHub Pages, a potem dopisuje snapshot do historii
+# w gałęzi `data` (ranking-db.json, language_colors.json). Ręcznie: Actions -> ten workflow -> Run workflow (opcja force).
+# Zmiany w kodzie strony (site/) trafiają na Pages dopiero przy następnym przebiegu (ręczny Run workflow wystarczy).
+
+on:
+  schedule:
+    - cron: '17 4 * * 1'   # poniedziałek 04:17 UTC; nie o pełnej godzinie, bo wtedy harmonogram bywa opóźniany
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Pobierz ranking, nawet jeśli ostatni snapshot ma mniej niż 6 dni'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # push do gałęzi data
+  pages: write      # wdrożenie na Pages
+  id-token: write   # wymagane przez deploy-pages
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Kod (main)
+        uses: actions/checkout@v4
+
+      # Gałąź data musi istnieć przed pierwszym przebiegiem (patrz README.md, "Pierwsze uruchomienie")
+      - name: Historia (gałąź data)
+        uses: actions/checkout@v4
+        with:
+          ref: data
+          path: data
+
+      - name: Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Pobranie rankingu z GitHuba
+        id: update
+        env:
+          # Sekret STARS_TOKEN: fine-grained token, publiczne repozytoria, tylko odczyt (README.md). Bez niego: token wbudowany.
+          GITHUB_TOKEN: ${{ secrets.STARS_TOKEN || github.token }}
+        run: ruby update.rb ${{ inputs.force && '--force' || '' }}
+
+      - name: Złożenie strony
+        if: steps.update.outputs.updated == 'true'
+        run: cp -r site/. _site/
+
+      - name: Konfiguracja Pages
+        if: steps.update.outputs.updated == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Pakowanie strony
+        if: steps.update.outputs.updated == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Wdrożenie na Pages
+        id: deployment
+        if: steps.update.outputs.updated == 'true'
+        uses: actions/deploy-pages@v4
+
+      # Historię zapisujemy PO udanym wdrożeniu: jeśli wdrożenie się nie uda, następny przebieg nie pominie pobrania (bramka świeżości).
+      - name: Zapis historii (gałąź data)
+        if: steps.update.outputs.updated == 'true'
+        run: |
+          cd data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Ranking z ${{ steps.update.outputs.ranking_date }}" || echo "Brak zmian do zapisania"
+          git push origin data

@@ -1,0 +1,7 @@
+# Cotygodniowe propozycje aktualizacji wersji akcji używanych w workflow (actions/checkout, deploy-pages itd.)
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
