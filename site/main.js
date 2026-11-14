@@ -105,7 +105,7 @@ Ext.onReady(function () {
 				region: 'north',
 				height: 60,
 				border: false,
-				html: '<div id="banner"><div>GitHub Stars Ranking' + rankingDateHtml() + '</div></div>'
+				html: '<div id="banner"><div>GitHub Stars Ranking' + rankingDateHtml() + '</div>' + '<button id="helpBtn" class="helpbtn" type="button" aria-haspopup="dialog" aria-controls="help" aria-label="Help: user manual" title="Help: user manual">?</button></div>'
 			},
 			{
 				region: 'center',
@@ -768,3 +768,17 @@ function buttonClick() {
 		win.focus();
 	}
 }
+
+// Help: the "?" button in the title bar opens the user manual (<dialog id="help"> in index.html); Esc, the X button and a click on the backdrop close it.
+document.addEventListener('click', function (e) {
+    var dlg = document.getElementById('help');
+    if (!dlg) { return; }
+    if (e.target.closest && e.target.closest('#helpBtn')) {
+	dlg.showModal();
+	document.getElementById('helpBody').scrollTop = 0;
+    } else if (e.target.closest && e.target.closest('#helpClose')) {
+	dlg.close();
+    } else if (e.target === dlg) {
+	dlg.close();   // click on the backdrop (the dialog has no padding, so only the backdrop hits the dialog element itself)
+    }
+});

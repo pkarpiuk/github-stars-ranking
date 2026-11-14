@@ -8,15 +8,77 @@
     <style>
       html { height: 100%; }
       body { min-height: 100%; max-height: 100%; height: 100%; margin: 0; padding: 0; }    
-      #banner { background-color: indigo; text-align: center; font-weight: normal; font-size: 40px !important; font-family: Georgia, sans-serif !important; color: white; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; align-content: center; }
+      #banner { position: relative; box-sizing: border-box; padding: 0 56px; background-color: indigo; text-align: center; font-weight: normal; font-size: 40px !important; font-family: Georgia, sans-serif !important; color: white; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; align-content: center; }
       /* Główna tabela: stała wysokość wiersza: komórka 24 px (border-box, razem z paddingiem 3+4 px) + 1 px obramowania = 25 px, tyle co */
       /* wiersz z załadowaną ikoną, żeby wiersze nie rosły z 21/23 do 25 px w miarę ładowania awatarów. Panele filtrów zostają bez zmian. */
       .ranking-grid .x-grid-cell-inner { height: 24px; }
+      /* Help: round "?" button in the title bar and the user manual in a modal <dialog> */
+      .helpbtn { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; padding: 0; border: 1px solid rgba(255,255,255,.7); border-radius: 50%; background: rgba(255,255,255,.12); color: #fff; font: 700 16px/1 Georgia, sans-serif; cursor: pointer; }
+      .helpbtn:hover, .helpbtn:focus-visible { background: rgba(255,255,255,.3); outline: none; }
+      .helpbtn:focus-visible { box-shadow: 0 0 0 2px #fff; }
+      #help { width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid #b5b8c8; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.35); color: #222; background: #fff; font: 14px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      #help[open] { display: flex; flex-direction: column; }
+      #help::backdrop { background: rgba(0,0,0,.45); }
+      #help .hhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 18px; background: indigo; color: #fff; border-radius: 9px 9px 0 0; }
+      #help .hhead h2 { margin: 0; font: 400 20px/1.3 Georgia, sans-serif; }
+      #help .hclose { padding: 2px 9px; border: 1px solid rgba(255,255,255,.7); border-radius: 4px; background: transparent; color: #fff; font-size: 14px; cursor: pointer; }
+      #help .hclose:hover, #help .hclose:focus-visible { background: rgba(255,255,255,.3); outline: none; }
+      #help .hbody { overflow: auto; padding: 2px 22px 18px; }
+      #help h3 { margin: 18px 0 4px; padding-top: 6px; border-top: 1px solid #e2e2e8; font-size: 15px; color: indigo; }
+      #help p, #help ul { margin: 6px 0; }
+      #help ul { padding-left: 20px; }
+      #help li { margin: 3px 0; }
+      #help .htab { width: 100%; border-collapse: collapse; margin: 6px 0; }
+      #help .htab td { padding: 4px 10px 4px 0; border-top: 1px solid #e8e8ee; vertical-align: top; }
+      #help .htab td:first-child { width: 22%; font-weight: 600; white-space: nowrap; }
+      #help .new { font-size: 80%; background: yellow; padding: 0 3px; }
+      #help code { background: #f0f0f5; padding: 0 4px; border-radius: 3px; }
     </style>
     <script src="ext-all.js" type="text/javascript"></script>
     <script src="db.js" type="text/javascript"></script>
     <script src="main.js" type="text/javascript"></script>
   </head>
   <body>
+    <dialog id="help" aria-labelledby="helpTitle">
+      <div class="hhead"><h2 id="helpTitle">GitHub Stars Ranking: user manual</h2><button class="hclose" id="helpClose" type="button" aria-label="Close help">&#10005;</button></div>
+      <div class="hbody" id="helpBody">
+        <p>The most-starred GitHub repositories (up to 10,000, at least 1,000 stars), rebuilt every week; the date is in the title bar. Compare with an earlier ranking to see what is rising, falling or new.</p>
+
+        <h3>Quick start</h3>
+        <ul>
+          <li>The table shows the first 300 matches. Narrow it with the phrase box and with the <i>Users</i>, <i>Topics</i> and <i>Languages</i> panels on the right.</li>
+          <li><b>Click a row</b> to see <i>Repo Info</i> at the bottom: description, topics, license, last push, open issues and pull requests, languages, and charts of position and stars over time. <b>Double-click</b> opens the repository on GitHub.</li>
+          <li>Choose <b>Compare to</b> to compare with an earlier ranking (from a week to several years back).</li>
+        </ul>
+
+        <h3>Toolbar</h3>
+        <table class="htab">
+          <tr><td>Compare to</td><td>The ranking to compare with. Turns on the <b>Change</b> and <b>Gain</b> columns and the <i>Sort by</i> and <i>Show</i> options.</td></tr>
+          <tr><td>Sort by</td><td>Stars, Stars gained, Stars gained %, Positions gained.</td></tr>
+          <tr><td>Show</td><td>All, New (created since that ranking), Climbers (moved up), Fallers (moved down).</td></tr>
+          <tr><td>Phrase</td><td>Searches name, name+desc or desc (<i>Search in</i>). It is a case-insensitive regular expression, e.g. <code>rust|zig</code>. <b>Clear</b> resets it.</td></tr>
+        </table>
+
+        <h3>Columns</h3>
+        <ul>
+          <li><b>Rank</b>: position in the full ranking, not affected by filters.</li>
+          <li><b>Change</b>: positions gained (&uarr;) or lost (&darr;) since the chosen ranking. <b>NEW</b> = created after it. <b>n/a</b> = existed already but is missing from that ranking (it was below the cut-off, or the data has a gap); hover for details.</li>
+          <li><b>Gain</b>: stars gained since then, and the percentage. For new repositories all stars count as gain.</li>
+          <li>Also: language (coloured dot), <b>Created</b> (year-month), <b>Forks</b>, <b>Subscribers</b> (watchers) and <b>Topics</b>.</li>
+        </ul>
+
+        <h3>Filter panels</h3>
+        <ul>
+          <li>Tick checkboxes in <i>Users</i> (owners), <i>Topics</i> and <i>Languages</i>. Several ticks in one panel mean &ldquo;any of them&rdquo;; different panels combine with &ldquo;and&rdquo;.</li>
+          <li><b>Clear selection</b> unticks everything. Each panel has its own name filter. Very common language names are hidden from <i>Topics</i>.</li>
+        </ul>
+
+        <h3>Good to know</h3>
+        <ul>
+          <li>Repo Info details are fetched by your browser from GitHub's public API (60 requests per hour per IP address). If you hit the limit, wait a while.</li>
+          <li>The ranking is rebuilt once a week, so <i>Change</i> compares weekly snapshots.</li>
+        </ul>
+      </div>
+    </dialog>
   </body>
 </html>

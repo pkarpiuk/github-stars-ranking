@@ -9,7 +9,7 @@ Ranking repozytoriów GitHuba wg gwiazdek: statyczna strona (ExtJS 4) na GitHub 
 (tam został stary wariant z workerem `worker.rb`, WEBrickiem i Dockerem oraz drugi, niezwiązany projekt: ranking rozszerzeń Chrome, który jest teraz w `~/chrome-ext-ranking`).
 
 - `update.rb` – cały proces odświeżenia (pobranie GraphQL, historia, `db.js`); `compare_snapshots.rb`, `language_colors.rb` – biblioteki; `language_colors.json` – kopia startowa słownika; `update_language_colors.rb` – ręczne odświeżenie tej kopii.
-- `site/` – strona: `index.html`, `main.js` (cała logika UI), `help.*`, `favicon.ico`, `ext-all.js` i `resources/` (dołączony ExtJS – nie edytować). `db.js` NIE leży w repozytorium: powstaje w `_site/` przy każdym przebiegu.
+- `site/` – strona: `index.html`, `main.js` (cała logika UI), `favicon.ico`, `ext-all.js` i `resources/` (dołączony ExtJS – nie edytować). `db.js` NIE leży w repozytorium: powstaje w `_site/` przy każdym przebiegu.
 - gałąź `data` – historia `ranking-db.json` i odświeżany `language_colors.json` (commitowane przez workflow po wdrożeniu); lokalnie `data/` jest w `.gitignore` głównej gałęzi.
 
 ## Polecenia
@@ -41,3 +41,7 @@ Słownik `LANG_COLORS` (nazwa języka => kolor) pochodzi z listy Linguist; `Lang
 ## Git
 
 W tym repozytorium commity robi się automatycznie po każdej skończonej, sprawdzonej zmianie (zgoda użytkownika z 2026-11-14): komunikat po polsku, zwięzły, z trailerem `Co-Authored-By`. `git push`, zakładanie repozytorium na GitHubie i tworzenie gałęzi `data` robi użytkownik (instrukcja w `README.md`). Nie commituj tokenów, `data/` ani `_site/` (są w `.gitignore`). W `~/rankings` commity nadal tylko na wyraźne polecenie.
+
+## Pomoc (podręcznik użytkownika)
+
+Okrągły przycisk „?” w prawym górnym rogu belki tytułowej (`#helpBtn`, wstawiany do `#banner` w `main.js`) otwiera okno modalne `<dialog id="help">` z podręcznikiem po angielsku, wpisanym na stałe w `site/index.html` (`showModal()`; zamykanie: Esc, ✕, kliknięcie w tło; obsługa przez delegację zdarzeń `click` na końcu `main.js`). Podręcznik jest krótki celowo: zmieniając interfejs (pola paska, kolumny, panele filtrów, opcje Sort by/Show, progi rankingu), zaktualizuj też jego treść. Dawny `help.html` w tym repozytorium był martwą kopią pomocy do rankingu rozszerzeń Chrome (bez linku w UI) i został usunięty razem z `help.png`.
