@@ -109,7 +109,7 @@ jobs:
       - name: Wdrożenie na Pages
         id: deployment
         if: steps.plan.outputs.deploy == 'true'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       # Historię zapisujemy PO udanym wdrożeniu: jeśli wdrożenie się nie uda, następny przebieg nie pominie pobrania (bramka świeżości).
       # Tryb redeploy_only nie dotyka historii (steps.update.outputs.updated jest wtedy puste).
