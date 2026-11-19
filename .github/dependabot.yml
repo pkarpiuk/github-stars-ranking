@@ -1,7 +1,12 @@
-# Cotygodniowe propozycje aktualizacji wersji akcji używanych w workflow (actions/checkout, deploy-pages itd.)
+# Coroczne propozycje aktualizacji wersji akcji używanych w workflow (actions/checkout, deploy-pages itd.),
+# zebrane w jednym PR-ze (poprawki bezpieczeństwa przychodzą osobno, niezależnie od harmonogramu)
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: yearly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
