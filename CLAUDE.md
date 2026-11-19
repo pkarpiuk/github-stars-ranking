@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code (claude.ai/code) working in this repository. Dokumentacja jest po polsku; odpowiadaj użytkownikowi po polsku.
+Guidance for Claude Code (claude.ai/code) working in this repository. Dokumentacja jest po polsku (wyjątek: `README.md` jest po angielsku, ze zrzutem ekranu `screenshot.webp` i linkiem do wdrożenia); odpowiadaj użytkownikowi po polsku.
 
 ## Przegląd
 
