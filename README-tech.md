@@ -60,4 +60,4 @@ Domyślne ścieżki: historia `data/ranking-db.json`, wynik `_site/db.js`. Zmien
 - **Harmonogram Actions** bywa opóźniany (zwłaszcza o pełnej godzinie) i w publicznym repozytorium **wyłącza się po 60 dniach bez aktywności** w repozytorium;
   cotygodniowy commit do gałęzi `data` powinien to zapobiegać, ale nie jest to sprawdzone. Jeśli harmonogram zniknie, włącz workflow ponownie w zakładce Actions.
 - Błąd pobrania (limit, sieć) kończy przebieg bez zapisu i bez wdrożenia: Pages zostaje przy poprzedniej wersji, a historia nie dostaje wpisu.
-- Workflow nie był jeszcze uruchomiony na GitHubie: sprawdzono tylko składnię i `update.rb` na atrapie API (patrz `CLAUDE.md`).
+- Brak testów automatycznych: `update.rb` testowano na atrapie API (patrz `CLAUDE.md`), a workflow działa na produkcji (uruchomienia z harmonogramu i ręczne).
