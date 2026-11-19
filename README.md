@@ -15,7 +15,7 @@ poniedziałek 04:17 UTC (Actions)
 ```
 
 - **`main`**: kod (`update.rb`, `compare_snapshots.rb`, `language_colors.rb`), strona (`site/`), workflow (`.github/workflows/update.yml`).
-- **`data`**: tylko historia: `ranking-db.json` (JSON-lines, dopisywana co tydzień, ok. 0,4 MB na snapshot) i odświeżany słownik `language_colors.json`.
+- **`data`**: tylko historia: `ranking-db.json` (JSON-lines, dopisywana co tydzień, ok. 0,4 MB na snapshot; starsze niż rok snapshoty są przerzedzane do pierwszego w każdym kwartale, patrz `history_thinning.rb`) i odświeżany słownik `language_colors.json`.
   Strona nie jest commitowana: `db.js` (ok. 5,7 MB) powstaje przy każdym przebiegu i jest publikowany jako artefakt Pages.
 - `update.rb` ma bramkę świeżości: jeśli ostatni snapshot ma mniej niż 6 dni, nic nie pobiera (opcja `force` w ręcznym uruchomieniu to pomija).
 

@@ -7,7 +7,7 @@
 #   GITHUB_TOKEN=... ruby update.rb [--force]
 #
 # Wejście/wyjście (ścieżki względne do bieżącego katalogu; zmienne środowiskowe w nawiasach):
-#   data/ranking-db.json      historia snapshotów (JSON-lines {ts, data}), tylko do dopisywania (RANKING_DB); w Actions: gałąź `data`
+#   data/ranking-db.json      historia snapshotów (JSON-lines {ts, data}), dopisywana, starsze snapshoty przerzedzane (history_thinning.rb) (RANKING_DB); w Actions: gałąź `data`
 #   data/language_colors.json odświeżany słownik kolorów języków (RANKING_LANG_COLORS); zapas: language_colors.json z repozytorium
 #   _site/db.js               dane dla strony (OUTPUT_DB_JS); workflow dokłada do tego katalogu pliki ze site/ i publikuje na Pages
 #
@@ -23,6 +23,7 @@ require 'openssl'
 require 'logger'
 require 'fileutils'
 require_relative 'compare_snapshots'
+require_relative 'history_thinning'
 require_relative 'language_colors'
 
 $RANKING_PATH = ENV['RANKING_DB'] || 'data/ranking-db.json'
@@ -264,6 +265,12 @@ def main( force )
   LanguageColors.update( $LANG_COLORS_DATA_PATH, $log )   # nie zgłasza wyjątków: przy błędzie zostaje poprzedni słownik
   pairs, ids = generateJS( $DB_JS_PATH, nodes, ts )
   saveRanking( pairs, ts, ids )
+  begin
+    before, after = HistoryThinning.thin( $RANKING_PATH )
+    $log.info "Przerzedzono historię: #{before} -> #{after} snapshotów" if after < before
+  rescue StandardError => e
+    $log.warn "Przerzedzanie historii nie powiodło się (#{e.message}) – historia bez zmian"   # snapshot już zapisany; nie przerywamy
+  end
   setOutput( 'updated', 'true' )
   setOutput( 'ranking_date', ts[0, 10] )
   $log.info "Gotowe: #{pairs.size} repozytoriów (#{$DB_JS_PATH}, #{( File.size( $DB_JS_PATH ) / 1024.0 / 1024 ).round( 2 )} MB)"
