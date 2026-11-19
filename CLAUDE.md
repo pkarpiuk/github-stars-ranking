@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code (claude.ai/code) working in this repository. Dokumentacja jest po polsku (wyjątek: `README.md` jest po angielsku, ze zrzutem ekranu `screenshot.webp` i linkiem do wdrożenia); odpowiadaj użytkownikowi po polsku.
+Guidance for Claude Code (claude.ai/code) working in this repository. Dokumentacja jest po polsku (wyjątek: `README.md` jest po angielsku, w standardowym układzie: opis, demo, zrzut `screenshot.webp`, funkcje, licencja, źródła; szczegóły eksploatacyjne po polsku są w `README-tech.md`; licencja GPL v3 w `LICENSE`, bo dołączony Ext JS 4.2 jest na GPL v3); odpowiadaj użytkownikowi po polsku.
 
 ## Przegląd
 
@@ -39,7 +39,7 @@ Słownik `LANG_COLORS` (nazwa języka => kolor) pochodzi z listy Linguist; `Lang
 
 ## Git
 
-W tym repozytorium commity robi się automatycznie po każdej skończonej, sprawdzonej zmianie (zgoda użytkownika z 2026-11-14): komunikat po polsku, zwięzły, z trailerem `Co-Authored-By`. `git push`, zakładanie repozytorium na GitHubie i tworzenie gałęzi `data` robi użytkownik (instrukcja w `README.md`). Nie commituj tokenów, `data/` ani `_site/` (są w `.gitignore`).
+W tym repozytorium commity robi się automatycznie po każdej skończonej, sprawdzonej zmianie (zgoda użytkownika z 2026-11-14): komunikat po polsku, zwięzły, z trailerem `Co-Authored-By`. `git push`, zakładanie repozytorium na GitHubie i tworzenie gałęzi `data` robi użytkownik (instrukcja w `README-tech.md`). Nie commituj tokenów, `data/` ani `_site/` (są w `.gitignore`).
 
 ## Pomoc (podręcznik użytkownika)
 
