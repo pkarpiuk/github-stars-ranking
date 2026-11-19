@@ -3,6 +3,36 @@ var usersGrid = null;
 var hasCompare = typeof COMPARE !== 'undefined' && COMPARE.length > 0;
 var currentCompare = null;   // snapshot wybrany w "Compare to" (ustawiany w refresh)
 
+// Etykieta pozycji w "Compare to": wiek snapshotu liczony od DZISIAJ ("9 days ago (2026-11-10)"), a nie od daty najnowszego rankingu
+// (tak liczy etykietę compare_snapshots.rb – zostaje jako zapas, gdy ts jest nieczytelny). Logika jak CompareSnapshots.age_label.
+function addMonthsUtc(d, n) {
+	var y = d.getUTCFullYear(), m = d.getUTCMonth() + n;
+	var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+	return new Date(Date.UTC(y, m, Math.min(d.getUTCDate(), last), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()));
+}
+function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+function ageLabel(from, to) {
+	var secs = Math.floor((to - from) / 1000);
+	if (secs < 3600) { return Math.max(Math.floor(secs / 60), 1) + ' min'; }
+	if (secs < 86400) { return plural(Math.floor(secs / 3600), 'hour'); }
+	var months = (to.getUTCFullYear() * 12 + to.getUTCMonth()) - (from.getUTCFullYear() * 12 + from.getUTCMonth());
+	var tod = function (d) { return d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds(); };
+	if (to.getUTCDate() < from.getUTCDate() || (to.getUTCDate() === from.getUTCDate() && tod(to) < tod(from))) { months -= 1; }
+	if (months < 0) { months = 0; }
+	var days = Math.floor(secs / 86400);
+	if (months < 1) { return days % 7 === 0 ? plural(days / 7, 'week') : plural(days, 'day'); }
+	var weeks = Math.floor(Math.floor((to - addMonthsUtc(from, months)) / 86400000) / 7);
+	if (months < 12) { return weeks > 0 ? plural(months, 'month') + ' ' + plural(weeks, 'week') : plural(months, 'month'); }
+	var years = Math.floor(months / 12), rest = months % 12;
+	var extra = rest > 0 ? plural(rest, 'month') : (weeks > 0 ? plural(weeks, 'week') : null);
+	return extra ? plural(years, 'year') + ' ' + extra : plural(years, 'year');
+}
+function compareLabel(c) {
+	var from = new Date(c.ts);
+	if (isNaN(from.getTime())) { return c.label; }
+	return ageLabel(from, new Date()) + ' ago (' + c.ts.substring(0, 10) + ')';
+}
+
 // Domyślny wybór w "Compare to": najmłodszy snapshot starszy od najnowszego rankingu o co najmniej rok (COMPARE jest posortowane
 // rosnąco wg wieku, więc to pierwszy pasujący). Brak takiego (za krótka historia) = pierwszy z listy.
 function defaultCompareIndex() {
@@ -142,7 +172,7 @@ Ext.onReady(function () {
 									submitEmptyText: false,
 									triggerAction: 'all',
 									value: defaultCompareIndex(),
-									store: COMPARE.map(function (c, i) { return [i, c.label]; }),
+									store: COMPARE.map(function (c, i) { return [i, compareLabel(c)]; }),
 									listeners: {
 										change: function (slf, newValue, oldValue, eOpts) {
 											refresh();
