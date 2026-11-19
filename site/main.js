@@ -2,6 +2,19 @@ var usersGrid = null;
 // db.js może nie mieć COMPARE (stary plik albo brak historii) – wtedy kolumna Change i lista "Compare to" się nie pojawiają
 var hasCompare = typeof COMPARE !== 'undefined' && COMPARE.length > 0;
 var currentCompare = null;   // snapshot wybrany w "Compare to" (ustawiany w refresh)
+
+// Domyślny wybór w "Compare to": najmłodszy snapshot starszy od najnowszego rankingu o co najmniej rok (COMPARE jest posortowane
+// rosnąco wg wieku, więc to pierwszy pasujący). Brak takiego (za krótka historia) = pierwszy z listy.
+function defaultCompareIndex() {
+	if (!hasCompare || typeof RANKING_TS !== 'string') return 0;
+	var cutoff = new Date(RANKING_TS);
+	if (isNaN(cutoff.getTime())) return 0;
+	cutoff.setUTCFullYear(cutoff.getUTCFullYear() - 1);
+	for (var i = 0; i < COMPARE.length; i++) {
+		if (Date.parse(COMPARE[i].ts) <= cutoff.getTime()) return i;
+	}
+	return 0;
+}
 var topicsGrid = null;
 var languagesGrid = null;
 
@@ -128,7 +141,7 @@ Ext.onReady(function () {
 									autoSelect: true,
 									submitEmptyText: false,
 									triggerAction: 'all',
-									value: 0,
+									value: defaultCompareIndex(),
 									store: COMPARE.map(function (c, i) { return [i, c.label]; }),
 									listeners: {
 										change: function (slf, newValue, oldValue, eOpts) {
